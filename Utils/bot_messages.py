@@ -87,9 +87,14 @@ class BotMessages(Enum):
         "description": "Bot is not in voice channel"
     }
 
-    GOODBYE = {
+    FINISHED_PLAYING = {
         "title": "Finished playing all the songs!",
         "description": "You can add more songs by typing /play"
+    }
+
+    GOODBYE = {
+        "title": "Goodbye!",
+        "description": "I'm leaving the channel due to inactivity"
     }
 
     @staticmethod

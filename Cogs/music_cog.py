@@ -6,7 +6,6 @@ import Utils.embed_util
 from Utils.bot_messages import BotMessages
 import Utils.validation
 import asyncio
-import time
 
 
 class MusicCog(commands.Cog):
@@ -38,9 +37,6 @@ class MusicCog(commands.Cog):
     async def play_next_song(self, interaction: discord.Interaction):
         if len(self.music_queue) > 0:
             self.is_playing = True
-        else:
-            embed = BotMessages.create_embed(BotMessages.GOODBYE.value)
-            await interaction.channel.send(embed=embed)
 
     async def play_music(self, interaction: discord.Interaction):
         while len(self.music_queue) > 0:
@@ -67,8 +63,7 @@ class MusicCog(commands.Cog):
                 self.music_queue.pop(0)
                 embed = Utils.embed_util.create_currently_playing_song_message(song)
                 await interaction.channel.send(embed=embed)
-                self.vc.play(discord.FFmpegPCMAudio(song['source'], **self.FFMPEG_OPTIONS),
-                             after=after_playing)
+                self.vc.play(discord.FFmpegPCMAudio(song['source'], **self.FFMPEG_OPTIONS))
 
                 for _ in range(song['duration']):
                     if self.skip_flag:
@@ -84,6 +79,9 @@ class MusicCog(commands.Cog):
                 self.is_playing = False
                 return
 
+        embed = BotMessages.create_embed(BotMessages.FINISHED_PLAYING.value)
+        await interaction.channel.send(embed=embed)
+
         self.is_playing = False
 
         if self.vc:
@@ -91,6 +89,8 @@ class MusicCog(commands.Cog):
             if not self.music_queue and not self.is_playing:
                 await self.vc.disconnect()
                 self.vc = None
+                embed = BotMessages.create_embed(BotMessages.GOODBYE.value)
+                await interaction.channel.send(embed=embed)
 
     async def handle_playback_action(self, interaction: discord.Interaction, action: str):
         if action == "pause":
