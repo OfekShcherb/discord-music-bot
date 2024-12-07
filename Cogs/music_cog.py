@@ -62,10 +62,12 @@ class MusicCog(commands.Cog):
             try:
                 self.music_queue.pop(0)
                 embed = Utils.embed_util.create_currently_playing_song_message(song)
-                await interaction.channel.send(embed=embed)
+                currently_playing_message = await interaction.channel.send(embed=embed)
                 self.vc.play(discord.FFmpegPCMAudio(song['source'], **self.FFMPEG_OPTIONS))
 
-                for _ in range(song['duration']):
+                for second in range(song['duration']):
+                    Utils.embed_util.update_current_playing_song_message(embed, second, song['duration'])
+                    await currently_playing_message.edit(embed=embed)
                     if self.skip_flag:
                         break
 
@@ -222,7 +224,11 @@ class MusicCog(commands.Cog):
         embed.add_field(name="text", value="Tito is always wrong", inline=True)
         embed.add_field(name="Source", value="[YouTube](https://www.youtube.com/watch?v=dQw4w9WgXcQ)", inline=False)
         embed.set_footer(text="Tito is always wrong")
-        await interaction.response.send_message(content=interaction.user.mention, embed=embed)
+        embed.set_thumbnail(url="https://static01.nyt.com/images/2024/01/26/multimedia/LH-Ravioli-lgpf/LH-Ravioli-lgpf-videoSmall.jpg")
+        embed.set_image(url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScshyfQcfsmzhe3RTQv6YkIldHaB71KENvkMjf3j8hexum1MqpWfyV4nqHSfymukKpNsE&usqp=CAU")
+        embed.set_author(name="Tupe")
+        await interaction.response.send_message(embed=embed)
+
 
 
 async def setup(bot: commands.Bot):

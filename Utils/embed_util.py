@@ -4,13 +4,20 @@ from Utils.bot_messages import BotMessages
 
 
 def create_currently_playing_song_message(song: dict):
+    start_time = str(datetime.timedelta(seconds=0))
     duration = str(datetime.timedelta(seconds=song['duration']))
     fields = {
-        'Duration': duration
+        'Duration': f'{start_time}/{duration}',
     }
     embed = BotMessages.create_embed(BotMessages.CURRENTLY_PLAYING_SONG.value, description=f"[{song['title']}]({song['url']})", fields=fields)
 
     return embed
+
+
+def update_current_playing_song_message(message: discord.Embed, time: int, song_duration: int):
+    duration = str(datetime.timedelta(seconds=song_duration))
+    new_time = str(datetime.timedelta(seconds=time))
+    message.set_field_at(0, name='Duration', value=f'{new_time}/{duration}')
 
 
 def create_new_song_added_message(who: str, song: dict, song_number: int):
