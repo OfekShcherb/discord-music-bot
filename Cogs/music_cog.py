@@ -20,7 +20,7 @@ class MusicCog(commands.Cog):
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
         self.vc = None
 
-    def search_youtube(self, item: str):
+    def fetch_song(self, item: str):
         with YoutubeDL(self.YDL_OPTIONS) as ydl:
             try:
                 if 'https' in item:
@@ -87,8 +87,8 @@ class MusicCog(commands.Cog):
         self.is_playing = False
 
         if self.vc:
-            await asyncio.sleep(30)  # Wait 30 seconds
-            if not self.music_queue and not self.is_playing:  # Ensure no new songs were added
+            await asyncio.sleep(30)
+            if not self.music_queue and not self.is_playing:
                 await self.vc.disconnect()
                 self.vc = None
 
@@ -128,7 +128,7 @@ class MusicCog(commands.Cog):
             voice_channel = interaction.user.voice.channel
             if self.is_paused:
                 self.vc.resume()
-            song = self.search_youtube(query)
+            song = self.fetch_song(query)
             if not song:
                 embed = BotMessages.create_embed(BotMessages.CANT_DOWNLOAD_SONG)
             else:
