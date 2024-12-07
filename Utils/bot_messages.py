@@ -87,6 +87,11 @@ class BotMessages(Enum):
         "description": "Bot is not in voice channel"
     }
 
+    GOODBYE = {
+        "title": "Finished playing all the songs!",
+        "description": "You can add more songs by typing /play"
+    }
+
     @staticmethod
     def create_embed(message, title=None, description=None, fields=None):
         embed = discord.Embed(
