@@ -84,11 +84,13 @@ class MusicCog(commands.Cog):
                 self.is_playing = False
                 return
 
-        if self.vc:
-            await self.vc.disconnect()
-            self.vc = None
-
         self.is_playing = False
+
+        if self.vc:
+            await asyncio.sleep(30)  # Wait 30 seconds
+            if not self.music_queue and not self.is_playing:  # Ensure no new songs were added
+                await self.vc.disconnect()
+                self.vc = None
 
     async def handle_playback_action(self, interaction: discord.Interaction, action: str):
         if action == "pause":
@@ -132,9 +134,9 @@ class MusicCog(commands.Cog):
             else:
                 self.music_queue.append([song, voice_channel])
                 embed = Utils.embed_util.create_new_song_added_message(interaction.user.nick, song, len(self.music_queue))
-
                 if not self.is_playing:
-                    await self.play_music(interaction)
+                    coro = self.play_music(interaction)
+                    asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
 
         await interaction.followup.send(embed=embed)
 
