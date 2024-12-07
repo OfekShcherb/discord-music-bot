@@ -14,6 +14,7 @@ class MusicCog(commands.Cog):
         self.bot = bot
         self.is_playing = False
         self.is_paused = False
+        self.skip_flag = False
         self.music_queue = []
         self.YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': 'True', 'extractaudio': True}
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
@@ -34,22 +35,22 @@ class MusicCog(commands.Cog):
 
         return {'source': info['url'], 'url': info['webpage_url'], 'title': info['title'], 'duration': info['duration']}
 
-    def play_next_song(self):
-        self.music_queue.pop(0)
-
+    async def play_next_song(self, interaction: discord.Interaction):
         if len(self.music_queue) > 0:
             self.is_playing = True
-
-            m_url = self.music_queue[0][0]['source']
-
-            self.vc.play(discord.FFmpegPCMAudio(m_url, **self.FFMPEG_OPTIONS), after=lambda e: self.play_next_song())
         else:
-            self.is_playing = False
+            embed = BotMessages.create_embed(BotMessages.GOODBYE.value)
+            await interaction.channel.send(embed=embed)
 
     async def play_music(self, interaction: discord.Interaction):
-        if len(self.music_queue) > 0:
+        while len(self.music_queue) > 0:
             self.is_playing = True
+            self.skip_flag = False
             song = self.music_queue[0][0]
+
+            def after_playing(error):
+                coro = self.play_next_song(interaction)
+                asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
 
             if self.vc is None or not self.vc.is_connected():
                 self.vc = await self.music_queue[0][1].connect()
@@ -67,13 +68,27 @@ class MusicCog(commands.Cog):
                 embed = Utils.embed_util.create_currently_playing_song_message(song)
                 await interaction.channel.send(embed=embed)
                 self.vc.play(discord.FFmpegPCMAudio(song['source'], **self.FFMPEG_OPTIONS),
-                             after=lambda _: self.play_next_song())
+                             after=after_playing)
+
+                for _ in range(song['duration']):
+                    if self.skip_flag:
+                        break
+
+                    while self.is_paused:
+                        await asyncio.sleep(1)
+
+                    await asyncio.sleep(1)
+
             except Exception as e:
                 print(f"Error while playing: {e}")
                 self.is_playing = False
                 return
-        else:
-            self.is_playing = False
+
+        if self.vc:
+            await self.vc.disconnect()
+            self.vc = None
+
+        self.is_playing = False
 
     async def handle_playback_action(self, interaction: discord.Interaction, action: str):
         if action == "pause":
@@ -116,7 +131,7 @@ class MusicCog(commands.Cog):
                 embed = BotMessages.create_embed(BotMessages.CANT_DOWNLOAD_SONG)
             else:
                 self.music_queue.append([song, voice_channel])
-                embed = Utils.embed_util.create_new_song_added_message(interaction.user.mention, song, len(self.music_queue))
+                embed = Utils.embed_util.create_new_song_added_message(interaction.user.nick, song, len(self.music_queue))
 
                 if not self.is_playing:
                     await self.play_music(interaction)
@@ -149,7 +164,7 @@ class MusicCog(commands.Cog):
                 embed = BotMessages.create_embed(BotMessages.SKIP_SONG_ERROR.value)
             elif self.vc:
                 self.vc.pause()
-                await self.play_music(interaction)
+                self.skip_flag = True
                 embed = BotMessages.create_embed(BotMessages.SKIP_SONG.value)
 
         await interaction.response.send_message(embed=embed)
