@@ -6,6 +6,7 @@ import Utils.embed_util
 from Utils.bot_messages import BotMessages
 import Utils.validation
 import asyncio
+import time
 
 
 class MusicCog(commands.Cog):
@@ -64,17 +65,23 @@ class MusicCog(commands.Cog):
                 embed = Utils.embed_util.create_currently_playing_song_message(song)
                 currently_playing_message = await interaction.channel.send(embed=embed)
                 self.vc.play(discord.FFmpegPCMAudio(song['source'], **self.FFMPEG_OPTIONS))
+                start_time = time.time()
 
-                for second in range(song['duration']):
-                    Utils.embed_util.update_current_playing_song_message(embed, second, song['duration'])
-                    await currently_playing_message.edit(embed=embed)
+                for elapsed_time in range(song['duration']):
+                    actual_elapsed = time.time() - start_time
                     if self.skip_flag:
                         break
 
+                    while actual_elapsed < elapsed_time + 1:
+                        await asyncio.sleep(0.1)
+                        actual_elapsed = time.time() - start_time
+
+                    Utils.embed_util.update_current_playing_song_message(embed, elapsed_time)
+                    await currently_playing_message.edit(embed=embed)
+
                     while self.is_paused:
                         await asyncio.sleep(1)
-
-                    await asyncio.sleep(1)
+                        start_time += 1
 
             except Exception as e:
                 print(f"Error while playing: {e}")

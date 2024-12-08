@@ -14,8 +14,8 @@ def create_currently_playing_song_message(song: dict):
     return embed
 
 
-def update_current_playing_song_message(message: discord.Embed, time: int, song_duration: int):
-    duration = str(datetime.timedelta(seconds=song_duration))
+def update_current_playing_song_message(message: discord.Embed, time: int):
+    duration = message.fields[0].value.split("/")[1]
     new_time = str(datetime.timedelta(seconds=time))
     message.set_field_at(0, name='Duration', value=f'{new_time}/{duration}')
 
