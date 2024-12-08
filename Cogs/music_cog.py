@@ -65,23 +65,8 @@ class MusicCog(commands.Cog):
                 embed = Utils.embed_util.create_currently_playing_song_message(song)
                 currently_playing_message = await interaction.channel.send(embed=embed)
                 self.vc.play(discord.FFmpegPCMAudio(song['source'], **self.FFMPEG_OPTIONS))
-                start_time = time.time()
 
-                for elapsed_time in range(song['duration']):
-                    actual_elapsed = time.time() - start_time
-                    if self.skip_flag:
-                        break
-
-                    while actual_elapsed < elapsed_time + 1:
-                        await asyncio.sleep(0.1)
-                        actual_elapsed = time.time() - start_time
-
-                    Utils.embed_util.update_current_playing_song_message(embed, elapsed_time)
-                    await currently_playing_message.edit(embed=embed)
-
-                    while self.is_paused:
-                        await asyncio.sleep(1)
-                        start_time += 1
+                await self.update_playback_progress(song['duration'], embed, currently_playing_message)
 
             except Exception as e:
                 print(f"Error while playing: {e}")
@@ -100,6 +85,25 @@ class MusicCog(commands.Cog):
                 self.vc = None
                 embed = BotMessages.create_embed(BotMessages.GOODBYE.value)
                 await interaction.channel.send(embed=embed)
+
+    async def update_playback_progress(self, duration, embed, message):
+        start_time = time.time()
+
+        for elapsed_time in range(duration + 1):
+            actual_elapsed = time.time() - start_time
+            if self.skip_flag:
+                break
+
+            while actual_elapsed < elapsed_time + 1:
+                await asyncio.sleep(0.1)
+                actual_elapsed = time.time() - start_time
+
+            Utils.embed_util.update_current_playing_song_message(embed, elapsed_time)
+            await message.edit(embed=embed)
+
+            while self.is_paused:
+                await asyncio.sleep(1)
+                start_time += 1
 
     async def handle_playback_action(self, interaction: discord.Interaction, action: str):
         if action == "pause":
